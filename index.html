@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kurama Nonton V9</title>
+<style>
+  body { background: #0f172a; color: #fff; font-family: sans-serif; margin: 0; padding: 16px; }
+  input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; font-size: 16px; }
+  button { background: #6366f1; color: #fff; font-weight: bold; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
+  .card { background: #1e293b; border-radius: 12px; overflow: hidden; cursor: pointer; }
+  .card img { width: 100%; height: 180px; object-fit: cover; }
+  .card p { padding: 8px; font-size: 14px; margin: 0; }
+  #player { width: 100%; aspect-ratio: 16/9; margin-top: 16px; border: 0; display: none; }
+  .loading { text-align: center; padding: 20px; }
+</style>
+</head>
+<body>
+  <h2>🔥 Kurama V9 Nonton</h2>
+  <input id="search" placeholder="Cari anime... enter buat cari" onkeypress="if(event.key==='Enter') searchAnime()">
+  <button onclick="searchAnime()">Cari</button>
+  <div id="list" class="grid"></div>
+  <iframe id="player" allowfullscreen allow="autoplay"></iframe>
+
+<script>
+const PROXIES = [
+  'https://cors.isomorphic-git.org/', // 1
+  'https://api.allorigins.win/raw?url=', // 2 
+  'https://thingproxy.freeboard.io/fetch/' // 3
+];
+const KURAMA = 'https://v9.kuramanime.blog';
+
+async function fetchHTML(url, i = 0) {
+  document.getElementById('list').innerHTML = `<div class="loading">Coba proxy ${i+1}...</div>`;
+  const proxy = PROXIES[i];
+  const finalUrl = proxy.includes('allorigins') ? proxy + encodeURIComponent(url) : proxy + url;
+  
+  try {
+    const res = await fetch(finalUrl);
+    if(!res.ok) throw new Error('Gagal');
+    const html = await res.text();
+    return new DOMParser().parseFromString(html, 'text/html');
+  } catch(e) {
+    if(i < PROXIES.length - 1) {
+      return fetchHTML(url, i + 1); // Coba proxy berikutnya
+    } else {
+      throw new Error('Semua proxy down bro');
+    }
+  }
+}
+
+async function searchAnime() {
+  const q = document.getElementById('search').value;
+  if(!q) return alert('Isi judul dulu bro');
+  try {
+    const $ = await fetchHTML(KURAMA + '/?s=' + q);
+    const list = document.getElementById('list');
+    list.innerHTML = '';
+    const cards = $.querySelectorAll('.animepost');
+    if(cards.length === 0) return list.innerHTML = '<p>Ga ketemu bro</p>';
+    cards.forEach(el => {
+      const title = el.querySelector('.tt')?.innerText || 'No Title';
+      const url = el.querySelector('a')?.href;
+      const thumb = el.querySelector('img')?.src || '';
+      list.innerHTML += `<div class="card" onclick="getEpisodes('${url}')"><img src="${thumb}" loading="lazy"><p>${title}</p></div>`;
+    });
+  } catch(e) {
+    document.getElementById('list').innerHTML = '<p>Semua proxy down bro. Coba pake VPN / besok lagi</p>';
+  }
+}
+
+async function getEpisodes(url) {
+  const $ = await fetchHTML(url);
+  const list = document.getElementById('list');
+  list.innerHTML = '<h3>Pilih Episode:</h3>';
+  const eps = $.querySelectorAll('#venkonten .eplist ul li a');
+  [...eps].reverse().forEach(a => { 
+    list.innerHTML += `<button onclick="play('${a.href}')">${a.innerText.trim()}</button>`;
+  });
+}
+
+async function play(epUrl) {
+  const $ = await fetchHTML(epUrl);
+  const iframe = $.querySelector('.player-embed iframe, iframe[src*="dood"], iframe[src*="sb"], iframe[src*="vidsrc"]');
+  if(iframe && iframe.src) {
+    document.getElementById('player').src = iframe.src;
+    document.getElementById('player').style.display = 'block';
+    window.scrollTo(0, document.getElementById('player').offsetTop);
+  } else {
+    alert('Video ga ketemu bro');
+  }
+}
+</script>
+</body>
+</html>
